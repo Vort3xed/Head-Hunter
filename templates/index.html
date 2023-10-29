@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+
+        <style>
+            .form-group { 
+                margin-top:15px;
+            }
+            </style>
+
+        <title>HeadHunter</title>
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+            rel="stylesheet">
+        <!-- <link rel="icon" type="image/x-icon" href="static\smallsmartieplogo.png"> -->
+
+        <style>
+        .centered-button {
+            display: flex;
+            justify-content: center;
+        }
+        </style>
+    </head>
+
+    <body>
+        
+        &nbsp;
+        <h1 class="mt-5" style="text-align: center">HeadHunter</h1>
+        <div
+            class="container mt-3 border border-2 border-light rounded shadow p-3 mb-5 bg-white rounded">
+            <div class="m-4">
+                <h3>Camera Photo Capture</h3>
+    
+                <div class="container">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div id="camera-container">
+                                <video id="camera-preview" autoplay></video>
+                            </div>
+                            <div id="photo-container" style="display: none;">
+                                <img id="captured-photo" alt="Captured Photo">
+                                <div class="text-center">
+                                    <button id="capture-another-button" class="btn btn-secondary">Retake Photo</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-center">
+                                <button id="capture-button" class="btn btn-primary">Capture Photo</button>
+                            </div>
+                            <div class="text-center mt-2">
+                                <div id="postElements" class="post-elements">
+                                    <form action="/predict" method="post">
+                                        <button id="predict-button" class="btn btn-primary">Predict</button>
+                                    </form>
+                                    <p>Prediction: {{ prediction }}</p>
+                                    <form action="/gengradcam" method="post">
+                                        <button id="predict-button" class="btn btn-primary">Generate Gradcam</button>
+                                    </form>  
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- <img id="captured-photo" alt="Captured Photo" src="{{ image_url }}"> -->
+                
+                <form action="/upload" method="post" enctype="multipart/form-data" id="upload-form">
+                    <input type="file" name="photo" id="photo-input" style="display: none;">
+                </form>
+        
+            
+                <script>
+                    const cameraContainer = document.getElementById("camera-container");
+                    const cameraPreview = document.getElementById("camera-preview");
+                    const captureButton = document.getElementById("capture-button");
+                    const predictButton = document.getElementById("predict-button"); // Declare predictButton here
+                    const postElements = document.getElementById("postElements");
+                    const photoContainer = document.getElementById("photo-container");
+                    const capturedPhoto = document.getElementById("captured-photo");
+                    const captureAnotherButton = document.getElementById("capture-another-button");
+                    const photoInput = document.getElementById("photo-input");
+                    const uploadForm = document.getElementById("upload-form");
+            
+                    let photoDataUrl;
+
+                    captureButton.addEventListener("click", () => {
+                        // Show the "Predict" button when the "Capture Photo" button is clicked
+                        postElements.style.display = "block";
+
+                        
+                    });
+            
+                    navigator.mediaDevices.getUserMedia({ video: true })
+                        .then(stream => {
+                            cameraPreview.srcObject = stream;
+                        })
+                        .catch(error => {
+                            console.error('Error accessing the camera:', error);
+                        });
+            
+                    captureButton.addEventListener("click", () => {
+                        const canvas = document.createElement("canvas");
+                        canvas.width = cameraPreview.videoWidth;
+                        canvas.height = cameraPreview.videoHeight;
+                        canvas.getContext('2d').drawImage(cameraPreview, 0, 0, canvas.width, canvas.height);
+                        photoDataUrl = canvas.toDataURL('image/jpeg');
+            
+                        capturedPhoto.src = photoDataUrl;
+                        photoContainer.style.display = "block";
+                        cameraContainer.style.display = "none";
+            
+                        // Automatically save the captured photo
+                        savePhoto();
+                    });
+            
+                    captureAnotherButton.addEventListener("click", () => {
+                        photoDataUrl = null;
+                        capturedPhoto.src = "";
+                        photoContainer.style.display = "none";
+                        cameraContainer.style.display = "block";
+                    });
+            
+                    function dataURItoBlob(dataURI) {
+                        const byteString = atob(dataURI.split(',')[1]);
+                        const ab = new ArrayBuffer(byteString.length);
+                        const ia = new Uint8Array(ab);
+                        for (let i = 0; i < byteString.length; i++) {
+                            ia[i] = byteString.charCodeAt(i);
+                        }
+                        return new Blob([ab], { type: 'image/jpeg' });
+                    }
+            
+                    function savePhoto() {
+                        // Trigger the form submission to save the captured photo
+                        if (photoDataUrl) {
+                            const blob = dataURItoBlob(photoDataUrl);
+                            const file = new File([blob], "captured_photo.jpg", { type: "image/jpeg" });
+                            const formData = new FormData();
+                            formData.append('photo', file);
+                            fetch('/upload', {
+                                method: 'POST',
+                                body: formData,
+                            });
+                        }
+                    }
+                </script>
+    
+                
+            </div>
+        </div>
+
+        <div class="text-center">
+            <img id="captured-photo" alt="Captured Photo" src="{{ image_url }}">
+        </div>
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    </body>
+</html>
